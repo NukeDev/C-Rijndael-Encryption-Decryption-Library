@@ -1,0 +1,5 @@
+F:\personal\io.cryptol.cloudwave\io.cryptol.cloudwave\bin\Debug\io.cryptol.cloudwave.dll
+F:\personal\io.cryptol.cloudwave\io.cryptol.cloudwave\bin\Debug\io.cryptol.cloudwave.pdb
+F:\personal\io.cryptol.cloudwave\io.cryptol.cloudwave\obj\Debug\io.cryptol.cloudwave.csprojResolveAssemblyReference.cache
+F:\personal\io.cryptol.cloudwave\io.cryptol.cloudwave\obj\Debug\io.cryptol.cloudwave.dll
+F:\personal\io.cryptol.cloudwave\io.cryptol.cloudwave\obj\Debug\io.cryptol.cloudwave.pdb

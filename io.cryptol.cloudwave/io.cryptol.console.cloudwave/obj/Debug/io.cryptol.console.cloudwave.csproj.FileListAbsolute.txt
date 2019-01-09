@@ -1,0 +1,8 @@
+F:\personal\io.cryptol.cloudwave\io.cryptol.console.cloudwave\bin\Debug\io.cryptol.console.cloudwave.exe.config
+F:\personal\io.cryptol.cloudwave\io.cryptol.console.cloudwave\bin\Debug\io.cryptol.console.cloudwave.exe
+F:\personal\io.cryptol.cloudwave\io.cryptol.console.cloudwave\bin\Debug\io.cryptol.console.cloudwave.pdb
+F:\personal\io.cryptol.cloudwave\io.cryptol.console.cloudwave\bin\Debug\io.cryptol.cloudwave.dll
+F:\personal\io.cryptol.cloudwave\io.cryptol.console.cloudwave\bin\Debug\io.cryptol.cloudwave.pdb
+F:\personal\io.cryptol.cloudwave\io.cryptol.console.cloudwave\obj\Debug\io.cryptol.console.cloudwave.csprojResolveAssemblyReference.cache
+F:\personal\io.cryptol.cloudwave\io.cryptol.console.cloudwave\obj\Debug\io.cryptol.console.cloudwave.exe
+F:\personal\io.cryptol.cloudwave\io.cryptol.console.cloudwave\obj\Debug\io.cryptol.console.cloudwave.pdb
