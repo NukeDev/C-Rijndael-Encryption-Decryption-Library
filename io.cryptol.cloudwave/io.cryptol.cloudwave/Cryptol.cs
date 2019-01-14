@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Security;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace io.cryptol.cloudwave
 {
@@ -76,7 +73,7 @@ namespace io.cryptol.cloudwave
             return "Unknown Error!";
         }
 
-        string FileControl(EncSettings settings)
+       string FileControl(EncSettings settings)
         {
             if(!File.Exists(settings.inputFile))
             {
@@ -123,6 +120,7 @@ namespace io.cryptol.cloudwave
                                     bytesRead += data;
                                     cs.Write(buffer, 0, data);
                                 }
+                                
                                 return "Code 01 : File successfully Encrypted!";
                             }
                         }
@@ -134,6 +132,7 @@ namespace io.cryptol.cloudwave
                 return "Code 00 : Error while Encrypting File " + ex.ToString();
             }
         }
+
 
         string DecryptFile(EncSettings settings)
         {
