@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using io.cryptol.cloudwave;
 using ZeroMQ;
+using LiteDB;
 
 namespace io.cryptol.server.cloudwave
 {
@@ -23,6 +24,8 @@ namespace io.cryptol.server.cloudwave
         public Settings encSet { get; set; }
         [ProtoMember(5)]
         public byte[] fileData { get; set; }
+        [ProtoMember(6)]
+        public string response { get; set; }
     }
     [ProtoContract]
     public class Settings
@@ -128,10 +131,62 @@ namespace io.cryptol.server.cloudwave
             }
             return result.ToString();
         }
+        static List<DBLog> dblogger = new List<DBLog>();
+        static List<DBUsers> dbusers = new List<DBUsers>();
 
         static void Main(string[] args)
         {
-
+            using (var db = new LiteDatabase("mydb.db"))
+            {
+                if(db.CollectionExists("DbLogger"))
+                {
+                    var collection = db.GetCollection<DBLog>("DbLogger");
+                    IEnumerable<DBLog> loggerlist = collection.FindAll();
+                    foreach(DBLog log in loggerlist)
+                    {
+                        dblogger.Add(log);
+                    }
+                }
+                else
+                {
+                    var collection = db.GetCollection<DBLog>("DbLogger");
+                    var log = new DBLog
+                    {
+                        userID = "9999",
+                        ipAddress = "0000000",
+                        EncType = "NULL",
+                        fileData = null,
+                        insertDate = DateTime.Now
+                    };
+                    collection.Insert(log);
+                }
+               if(db.CollectionExists("DbUsers"))
+               {
+                    var collection = db.GetCollection<DBUsers>("DbUsers");
+                    IEnumerable<DBUsers> userlist = collection.FindAll();
+                    foreach (DBUsers user in userlist)
+                    {
+                        dbusers.Add(user);
+                    }
+                }
+                else
+                {
+                    var collection1 = db.GetCollection<DBUsers>("DbUsers");
+                    var user = new DBUsers
+                    {
+                        ID = "101",
+                        user = "admin"
+                    };
+                    collection1.Insert(user);
+                }
+                
+            }
+            Console.WriteLine("Active Users");
+            foreach(DBUsers user in dbusers)
+            {
+                Console.WriteLine(user.id + " - " + user.ID + " - " + user.user);
+            }
+            
             using (var ctx = new ZContext())
             using (var clients = new ZSocket(ctx, ZSocketType.ROUTER))
             using (var workers = new ZSocket(ctx, ZSocketType.DEALER))
@@ -153,6 +208,7 @@ namespace io.cryptol.server.cloudwave
         }
         static void MTServer_Worker(ZContext ctx)
         {
+            bool loggedin = false;
             // Socket to talk to dispatcher
             using (var server = new ZSocket(ctx, ZSocketType.REP))
             {
@@ -165,50 +221,124 @@ namespace io.cryptol.server.cloudwave
                         byte[] receivedBytes = frame.Read();
                         Test test = ProtoDeserialize<Test>(receivedBytes);
 
-                        Console.WriteLine(DateTime.Now + ": New Request of " + test.encSet.Type.ToString() + " from " + test.ip.query);
-                       
-                        
-                        if(test.fileData != null)
+                        foreach(DBUsers user in dbusers)
                         {
-                            float fileSize = (test.fileData.Length / 1024f) / 1024f;
-                            Console.WriteLine(DateTime.Now + ": File Size -> " + fileSize.ToString() + "Mbytes |" + " Hash -> " + test.fileData.GetHashCode());
-                            string tempDir = GetUniqueKey(10);
-                            Directory.CreateDirectory(tempDir);
-                            File.WriteAllBytes(tempDir + "\\temp", test.fileData);
-
-                            EncSettings settings = new EncSettings();
-
-                            settings.inputFile = tempDir + "\\temp";
-                            settings.outputFile = tempDir + "\\temp.enc";
-                            settings.password = "mysuperpassword" + test.encSet.password;
-                            settings.Type = EncSettings.encType.Encrypt;
-
-                            Cryptol crp = new Cryptol();
-                            Console.WriteLine(DateTime.Now + ": Trying to " + test.encSet.Type.ToString() + " for " + test.ip.query);
-
-                            Console.WriteLine(DateTime.Now + ": Status: " + crp.CryptolLoad(settings) + "for " + test.ip.query + " from " + test.ip.regionName);
-
-
-
-                            test.fileData = File.ReadAllBytes(tempDir + "\\temp.enc");
-
-
+                            if(user.ID == test.ID && user.user == test.user)
+                            {
+                                loggedin = true;
+                            }
+                         
                         }
-                      
+
+                        Console.WriteLine(DateTime.Now + ": New Request of " + test.encSet.Type.ToString() + " from " + test.ip.query);
+                        if(loggedin == true)
+                        {
+                            
+                            if (test.encSet.Type == Settings.encType.Encrypt)
+                            {
+                                if (test.fileData != null)
+                                {
+                                    float fileSize = (test.fileData.Length / 1024f) / 1024f;
+                                    Console.WriteLine(DateTime.Now + ": File Size -> " + fileSize.ToString() + "Mbytes |" + " Hash -> " + test.fileData.GetHashCode());
+                                    string tempDir = GetUniqueKey(10);
+                                    Directory.CreateDirectory(tempDir);
+                                    File.WriteAllBytes(tempDir + "\\temp", test.fileData);
+
+                                    EncSettings settings = new EncSettings();
+
+                                    settings.inputFile = tempDir + "\\temp";
+                                    settings.outputFile = tempDir + "\\temp.enc";
+                                    settings.password = "mysuperpassword" + test.encSet.password;
+                                    settings.Type = EncSettings.encType.Encrypt;
+
+                                    Cryptol crp = new Cryptol();
+                                    Console.WriteLine(DateTime.Now + ": Trying to " + test.encSet.Type.ToString() + " for " + test.ip.query);
+
+                                   
+                                    using (var db = new LiteDatabase("mydb.db"))
+                                    {
+                                     
+                                       var collection = db.GetCollection<DBLog>("DbLogger");
+                                           
+                                       collection.Insert(new DBLog { userID = test.ID, EncType = test.encSet.Type.ToString(), fileData = test.fileData, insertDate = DateTime.Now, ipAddress = test.ip.query });
+                                    }
+
+                                    string response = crp.CryptolLoad(settings);
+                                    Console.WriteLine(DateTime.Now + ": Status: " + response + " Client: " + test.ip.query + " from " + test.ip.regionName);
+                                    test.fileData = File.ReadAllBytes(tempDir + "\\temp.enc");
+
+                                    test.response = response;
+
+                                }
+                            }
+                            else if (test.encSet.Type == Settings.encType.Decrypt)
+                            {
+                                if (test.fileData != null)
+                                {
+                                    float fileSize = (test.fileData.Length / 1024f) / 1024f;
+                                    Console.WriteLine(DateTime.Now + ": File Size -> " + fileSize.ToString() + "Mbytes |" + " Hash -> " + test.fileData.GetHashCode());
+                                    string tempDir = GetUniqueKey(10);
+                                    Directory.CreateDirectory(tempDir);
+                                    File.WriteAllBytes(tempDir + "\\temp", test.fileData);
+
+                                    EncSettings settings = new EncSettings();
+
+                                    settings.inputFile = tempDir + "\\temp";
+                                    settings.outputFile = tempDir + "\\temp.dec";
+                                    settings.password = "mysuperpassword" + test.encSet.password;
+                                    settings.Type = EncSettings.encType.Decrypt;
+
+                                    Cryptol crp = new Cryptol();
+                                    Console.WriteLine(DateTime.Now + ": Trying to " + test.encSet.Type.ToString() + " for " + test.ip.query);
+
+                                    using (var db = new LiteDatabase("mydb.db"))
+                                    {
+
+                                        var collection = db.GetCollection<DBLog>("DbLogger");
+
+                                        collection.Insert(new DBLog { userID = test.ID, EncType = test.encSet.Type.ToString(), fileData = test.fileData, insertDate = DateTime.Now, ipAddress = test.ip.query });
+                                    }
+
+                                    string response = crp.CryptolLoad(settings);
+                                    Console.WriteLine(DateTime.Now + ": Status: " + response + " Client: " + test.ip.query + " from " + test.ip.regionName);
+
+                                    test.fileData = File.ReadAllBytes(tempDir + "\\temp.dec");
+
+                                    test.response = response;
 
 
-                        // Do some 'work'
-                        Thread.Sleep(1);
+                                }
 
-                        Console.WriteLine(DateTime.Now + ": Sending data for " + test.ip.query + " from " + test.ip.region);
 
-                        // Send reply back to client
-                        byte[] toSendBytes = ProtoSerialize<Test>(test);
-                      
-                        server.Send(new ZFrame(toSendBytes));
 
-                        Console.WriteLine(DateTime.Now + ": Data sent for " + test.ip.query + " from " + test.ip.region);
+                            }
 
+                            // Do some 'work'
+                            Thread.Sleep(1);
+
+                            Console.WriteLine(DateTime.Now + ": Sending data for " + test.ip.query + " from " + test.ip.regionName);
+
+                            // Send reply back to client
+                            byte[] toSendBytes = ProtoSerialize<Test>(test);
+
+                            server.Send(new ZFrame(toSendBytes));
+
+                            Console.WriteLine(DateTime.Now + ": Data sent for " + test.ip.query + " from " + test.ip.regionName);
+                        }
+                        else
+                        {
+                            Thread.Sleep(1);
+
+                            Console.WriteLine(test.ID + " NOT LOGGED IN");
+
+                            test.response = "AUTH ERROR";
+
+                            byte[] toSendBytes = ProtoSerialize<Test>(test);
+
+                            server.Send(new ZFrame(toSendBytes));
+
+                            Console.WriteLine(DateTime.Now + ": Data sent for " + test.ip.query + " from " + test.ip.regionName);
+                        }
 
                     }
                 }

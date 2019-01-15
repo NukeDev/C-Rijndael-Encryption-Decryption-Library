@@ -27,6 +27,8 @@ namespace io.cryptol.console.cloudwave
         public Settings encSet { get; set; }
         [ProtoMember(5)]
         public byte[] fileData { get; set; }
+        [ProtoMember(6)]
+        public string response { get; set; }
     }
     [ProtoContract]
     public class Settings
@@ -81,6 +83,7 @@ namespace io.cryptol.console.cloudwave
     {
 
         static IPInformation ipinfo = new IPInformation();
+      
         static void Main(string[] args)
         {
             string endpoint = "tcp://127.0.0.1:10000";
@@ -101,17 +104,16 @@ namespace io.cryptol.console.cloudwave
                 
                 Test test = new Test();
 
-                test.ID = "100";
-                test.user = "user";
+                test.ID = "101";
+                test.user = "admin";
                 test.ip = ipinfo;
                 Settings set = new Settings();
-
                 set.password = "12345";
-                set.Type = Settings.encType.Encrypt;
+                set.Type = Settings.encType.Decrypt;
 
                 test.encSet = set;
 
-                test.fileData = File.ReadAllBytes(@"C:\Users\g.varriale\Downloads\Downloads.zip");
+                test.fileData = File.ReadAllBytes(@"C:\Users\g.varriale\Downloads\CitrixReceiver.exe.enc");
                
 
                 Console.WriteLine(DateTime.Now + ": Sending informations... " + test.GetHashCode());
@@ -126,9 +128,14 @@ namespace io.cryptol.console.cloudwave
 
                     test1 = ProtoDeserialize<Test>(reply.Read());
 
-                    Console.WriteLine(DateTime.Now + ": Received: " + test1.GetHashCode() + " - " + test1.ID);
+                    Console.WriteLine(DateTime.Now + ": Received: " + test1.GetHashCode() + " - " + test1.ID + " RESPONSE: " + test1.response);
 
-                    File.WriteAllBytes(@"C:\Users\g.varriale\Downloads\Downloads.zip.enc", test1.fileData);
+                    if(test1.response != "AUTH ERROR")
+                    {
+                        File.WriteAllBytes(@"C:\Users\g.varriale\Downloads\CitrixReceiver11.exe", test1.fileData);
+                    }
+
+                   
                 }
                 
 
